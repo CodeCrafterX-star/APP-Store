@@ -17,6 +17,7 @@
             <option value="Social">Social</option>
             <option value="Utilities">Utilities</option>
         </select>
+        <button id="subscribe-btn">Subscribe to Notifications</button>
     </header>
     <main>
         <div id="app-grid"></div>
@@ -34,11 +35,13 @@
         </div>
     </main>
 
-    <!-- Firebase SDK (Messaging removed) -->
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-functions-compat.js"></script>
+
+    <!-- OneSignal SDK -->
+    <script src="https://cdn.onesignal.com/sdks/OneSignalSDK.js" async></script>
 
     <script>
         // Firebase Configuration
@@ -48,14 +51,33 @@
             projectId: "app-1a53a",
             storageBucket: "app-1a53a.firebasestorage.app",
             messagingSenderId: "1024256363080",
-            appId: "1:1024256363080:web:37b2bb10ae96f67442a67d",
-            measurementId: "G-25799NC6YK"
+            appId: "1:1024256363080:web:37b2bb10ae96f67442a67d"
         };
 
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-        const functions = firebase.functions(); // Keep for other potential functions
+
+        // Initialize OneSignal
+        window.OneSignal = window.OneSignal || [];
+        OneSignal.push(() => {
+            OneSignal.init({
+                appId: "YOUR_ONESIGNAL_APP_ID", // Replace with your OneSignal App ID
+                safari_web_id: "webonesignalid", // Optional, for Safari
+                notifyButton: {
+                    enable: true // Shows a subscription bell
+                }
+            });
+        });
+
+        // Subscribe to Notifications
+        document.getElementById('subscribe-btn').addEventListener('click', () => {
+            OneSignal.push(() => {
+                OneSignal.showSlidedownPrompt().then(() => {
+                    alert('Subscription prompt shown!');
+                }).catch(err => console.error('Error showing prompt:', err));
+            });
+        });
 
         // App Data
         let apps = [];
@@ -91,56 +113,56 @@
                             <p>${app.description}</p>
                             <p>Category: ${app.category}</p>
                             <p>Rating: ${app.rating}⭐</p>
-                            <p>Version: ${app.version}</p>
-                            <p>Dev: ${app.dev}</p>
-                            <button onclick="toggleFavorite('${safeId}', event)">${favorites.includes(app.id) ? '★' : '☆'}</button>
-                            <a href="${app.downloadUrl}" target="_blank">Download</a>
-                        </div>
-                    `;
-                })
-                .join('');
-        }
+                    <p>Version: ${app.version}</p>
+                    <p>Dev: ${app.dev}</p>
+                    <button onclick="toggleFavorite('${safeId}', event)">${favorites.includes(app.id) ? '★' : '☆'}</button>
+                    <a href="${app.downloadUrl}" target="_blank">Download</a>
+                </div>
+            `;
+        })
+        .join('');
+    }
 
-        // Select App for Details
-        function selectApp(appId) {
-            const app = apps.find(a => a.id === appId);
-            document.getElementById('app-name').textContent = app.name;
-            document.getElementById('app-icon').src = app.icon;
-            document.getElementById('app-description').textContent = app.description;
-            document.getElementById('app-category').textContent = app.category;
-            document.getElementById('app-rating').textContent = app.rating;
-            document.getElementById('app-version').textContent = app.version;
-            document.getElementById('app-dev').textContent = app.dev;
-            document.getElementById('app-download').href = app.downloadUrl;
-            document.getElementById('toggle-favorite-btn').textContent = favorites.includes(appId) ? '★' : '☆';
-            document.getElementById('toggle-favorite-btn').onclick = () => toggleFavorite(appId);
-            document.getElementById('app-details').classList.remove('hidden');
-            document.getElementById('app-grid').classList.add('hidden');
-        }
+    // Select App for Details
+    function selectApp(appId) {
+        const app = apps.find(a => a.id === appId);
+        document.getElementById('app-name').textContent = app.name;
+        document.getElementById('app-icon').src = app.icon;
+        document.getElementById('app-description').textContent = app.description;
+        document.getElementById('app-category').textContent = app.category;
+        document.getElementById('app-rating').textContent = app.rating;
+        document.getElementById('app-version').textContent = app.version;
+        document.getElementById('app-dev').textContent = app.dev;
+        document.getElementById('app-download').href = app.downloadUrl;
+        document.getElementById('toggle-favorite-btn').textContent = favorites.includes(appId) ? '★' : '☆';
+        document.getElementById('toggle-favorite-btn').onclick = () => toggleFavorite(appId);
+        document.getElementById('app-details').classList.remove('hidden');
+        document.getElementById('app-grid').classList.add('hidden');
+    }
 
-        // Hide Details
-        function hideDetails() {
-            document.getElementById('app-details').classList.add('hidden');
-            document.getElementById('app-grid').classList.remove('hidden');
-        }
+    // Hide Details
+    function hideDetails() {
+        document.getElementById('app-details').classList.add('hidden');
+        document.getElementById('app-grid').classList.remove('hidden');
+    }
 
-        // Toggle Favorite
-        function toggleFavorite(appId, event) {
-            if (event) event.stopPropagation();
-            if (favorites.includes(appId)) {
-                favorites = favorites.filter(id => id !== appId);
-            } else {
-                favorites.push(appId);
-            }
-            localStorage.setItem('favorites', JSON.stringify(favorites));
-            renderApps();
-            if (document.getElementById('app-details').classList.contains('hidden')) {
-                selectApp(appId); // Refresh details if open
-            }
+    // Toggle Favorite
+    function toggleFavorite(appId, event) {
+        if (event) event.stopPropagation();
+        if (favorites.includes(appId)) {
+            favorites = favorites.filter(id => id !== appId);
+        } else {
+            favorites.push(appId);
         }
+        localStorage.setItem('favorites', JSON.stringify(favorites));
+        renderApps();
+        if (document.getElementById('app-details').classList.contains('hidden')) {
+            selectApp(appId); // Refresh details if open
+        }
+    }
 
-        // Initialize
-        fetchApps(renderApps);
+    // Initialize
+    fetchApps(renderApps);
     </script>
 </body>
 </html>
