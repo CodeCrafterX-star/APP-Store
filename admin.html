@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="login-form">
+        <h2>Admin Login</h2>
+        <input type="email" id="login-email" placeholder="Email">
+        <input type="password" id="login-password" placeholder="Password">
+        <button onclick="login()">Login</button>
+    </div>
+    <div id="admin-content" style="display: none;">
+        <h2>Admin Panel</h2>
+        <div id="token-display">Not available</div>
+        <h3>Add New App</h3>
+        <input type="text" id="app-name" placeholder="App Name">
+        <input type="text" id="app-icon" placeholder="Icon URL">
+        <input type="text" id="app-description" placeholder="Description">
+        <select id="app-category">
+            <option value="Games">Games</option>
+            <option value="Productivity">Productivity</option>
+            <option value="Social">Social</option>
+            <option value="Utilities">Utilities</option>
+        </select>
+        <input type="number" id="app-rating" placeholder="Rating (0-5)" min="0" max="5" step="0.1">
+        <input type="text" id="app-version" placeholder="Version">
+        <input type="text" id="app-dev" placeholder="Developer">
+        <input type="text" id="app-download" placeholder="Download URL">
+        <button onclick="addApp()">Add App</button>
+        <h3>App List</h3>
+        <ul id="app-list"></ul>
+    </div>
+
+    <!-- Firebase SDK (Messaging removed) -->
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-functions-compat.js"></script>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCvMEcXUmtImXjYOgGwyCJEJuVcoEvb8h4",
+            authDomain: "app-1a53a.firebaseapp.com",
+            projectId: "app-1a53a",
+            storageBucket: "app-1a53a.firebasestorage.app",
+            messagingSenderId: "1024256363080",
+            appId: "1:1024256363080:web:37b2bb10ae96f67442a67d",
+            measurementId: "G-25799NC6YK"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const functions = firebase.functions(); // Keep for other potential functions
+
+        // Login Function
+        function login() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            firebase.auth().signInWithEmailAndPassword(email, password)
+                .then(() => {
+                    document.getElementById('login-form').style.display = 'none';
+                    document.getElementById('admin-content').style.display = 'block';
+                    fetchApps(renderAdminList);
+                })
+                .catch(error => alert('Login failed: ' + error.message));
+        }
+
+        // Fetch Apps
+        function fetchApps(callback) {
+            db.collection('apps').get()
+                .then(querySnapshot => {
+                    const apps = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    callback(apps);
+                })
+                .catch(error => console.error('Error fetching apps:', error));
+        }
+
+        // Render Admin List
+        function renderAdminList(apps) {
+            const list = document.getElementById('app-list');
+            list.innerHTML = apps.map(app => `
+                <li>
+                    ${app.name} 
+                    <button onclick="editApp('${app.id}')">Edit</button>
+                    <button onclick="deleteApp('${app.id}')">Delete</button>
+                </li>
+            `).join('');
+        }
+
+        // Add App
+        function addApp() {
+            const app = {
+                name: document.getElementById('app-name').value,
+                icon: document.getElementById('app-icon').value,
+                description: document.getElementById('app-description').value,
+                category: document.getElementById('app-category').value,
+                rating: parseFloat(document.getElementById('app-rating').value) || 0,
+                version: document.getElementById('app-version').value,
+                dev: document.getElementById('app-dev').value,
+                downloadUrl: document.getElementById('app-download').value
+            };
+            db.collection('apps').add(app)
+                .then(() => {
+                    alert('App added successfully!');
+                    fetchApps(renderAdminList);
+                    clearForm();
+                })
+                .catch(error => alert('Error adding app: ' + error.message));
+        }
+
+        // Edit App (Placeholder)
+        function editApp(appId) {
+            alert('Edit functionality not implemented yet for app: ' + appId);
+        }
+
+        // Delete App
+        function deleteApp(appId) {
+            if (confirm('Are you sure you want to delete this app?')) {
+                db.collection('apps').doc(appId).delete()
+                    .then(() => {
+                        alert('App deleted successfully!');
+                        fetchApps(renderAdminList);
+                    })
+                    .catch(error => alert('Error deleting app: ' + error.message));
+            }
+        }
+
+        // Clear Form
+        function clearForm() {
+            document.getElementById('app-name').value = '';
+            document.getElementById('app-icon').value = '';
+            document.getElementById('app-description').value = '';
+            document.getElementById('app-category').value = 'Games';
+            document.getElementById('app-rating').value = '';
+            document.getElementById('app-version').value = '';
+            document.getElementById('app-dev').value = '';
+            document.getElementById('app-download').value = '';
+        }
+
+        // Initialize
+        firebase.auth().onAuthStateChanged(user => {
+            if (user && user.uid === "OYSFxeYqRsX0g4AKzptQexoC5Vr2") {
+                document.getElementById('login-form').style.display = 'none';
+                document.getElementById('admin-content').style.display = 'block';
+                fetchApps(renderAdminList);
+            } else {
+                document.getElementById('admin-content').style.display = 'none';
+                document.getElementById('login-form').style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
