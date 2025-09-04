@@ -15,7 +15,6 @@
     </div>
     <div id="admin-content" style="display: none;">
         <h2>Admin Panel</h2>
-        <div id="token-display">Not available</div>
         <h3>Add New App</h3>
         <input type="text" id="app-name" placeholder="App Name">
         <input type="text" id="app-icon" placeholder="Icon URL">
@@ -31,15 +30,22 @@
         <input type="text" id="app-dev" placeholder="Developer">
         <input type="text" id="app-download" placeholder="Download URL">
         <button onclick="addApp()">Add App</button>
+        <h3>Send Notification</h3>
+        <input type="text" id="notification-title" placeholder="Title">
+        <input type="text" id="notification-body" placeholder="Body">
+        <button onclick="sendNotification()">Send Notification</button>
+        <div id="notification-status"></div>
         <h3>App List</h3>
         <ul id="app-list"></ul>
     </div>
 
-    <!-- Firebase SDK (Messaging removed) -->
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-functions-compat.js"></script>
+
+    <!-- OneSignal SDK -->
+    <script src="https://cdn.onesignal.com/sdks/OneSignalSDK.js" async></script>
 
     <script>
         // Firebase Configuration
@@ -49,14 +55,24 @@
             projectId: "app-1a53a",
             storageBucket: "app-1a53a.firebasestorage.app",
             messagingSenderId: "1024256363080",
-            appId: "1:1024256363080:web:37b2bb10ae96f67442a67d",
-            measurementId: "G-25799NC6YK"
+            appId: "1:1024256363080:web:37b2bb10ae96f67442a67d"
         };
 
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-        const functions = firebase.functions(); // Keep for other potential functions
+
+        // Initialize OneSignal
+        window.OneSignal = window.OneSignal || [];
+        OneSignal.push(() => {
+            OneSignal.init({
+                appId: "YOUR_ONESIGNAL_APP_ID", // Replace with your OneSignal App ID
+                safari_web_id: "webonesignalid", // Optional, for Safari
+                notifyButton: {
+                    enable: false // Disable for admin panel
+                }
+            });
+        });
 
         // Login Function
         function login() {
@@ -141,6 +157,31 @@
             document.getElementById('app-version').value = '';
             document.getElementById('app-dev').value = '';
             document.getElementById('app-download').value = '';
+        }
+
+        // Send Notification
+        function sendNotification() {
+            const title = document.getElementById('notification-title').value;
+            const body = document.getElementById('notification-body').value;
+            if (!title || !body) {
+                document.getElementById('notification-status').textContent = 'Please enter title and body';
+                return;
+            }
+
+            OneSignal.push(() => {
+                OneSignal.postNotification({
+                    headings: { en: title },
+                    contents: { en: body },
+                    included_segments: ["Subscribed Users"] // Targets all subscribed users
+                }, {
+                    success: () => {
+                        document.getElementById('notification-status').textContent = 'Notification sent!';
+                    },
+                    error: (error) => {
+                        document.getElementById('notification-status').textContent = 'Failed to send: ' + error;
+                    }
+                });
+            });
         }
 
         // Initialize
